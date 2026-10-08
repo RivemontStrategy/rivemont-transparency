@@ -1,0 +1,9 @@
+{
+  "name": "rivemont-transparency",
+  "private": true,
+  "description": "Browser-side tests for the Rivemont transparency code (no dependencies; Node 18+).",
+  "license": "BUSL-1.1",
+  "scripts": {
+    "test": "for f in tests/js/*.test.mjs; do node \"$f\" || exit 1; done"
+  }
+}

@@ -1,0 +1,7 @@
+# What the code and tests here need (the same versions the live server pins).
+eth-account==0.13.7
+eth-utils==5.3.1
+httpx==0.28.1
+pytest>=8
+# optional: tests/test_signing.py compares signatures with the official Hyperliquid SDK when it is installed
+# hyperliquid-python-sdk==0.24.0

@@ -16,9 +16,10 @@ import os
 import time
 from datetime import datetime, timezone
 
-# name, Season points needed, share of the standard Rivemont fee (0.1% -> 0.09% -> 0.08% -> 0.07%); the volume tiers
-# (fees/volume.py) are shares too and the lower of the two applies (best_share)
-TIERS = (("Bronze", 0, 1.0), ("Silver", 1_000, 0.9), ("Gold", 10_000, 0.8), ("Platinum", 50_000, 0.7))
+# name, Season points needed, share of the standard Rivemont fee (since 2026-10-08: 0.05% -> 0.048% -> 0.045% -> 0.04%,
+# i.e. 50 / 48 / 45 / 40 tenths of a basis point on Hyperliquid); the volume tiers (fees/volume.py) are shares too and the
+# lower of the two applies (best_share)
+TIERS = (("Bronze", 0, 1.0), ("Silver", 1_000, 0.96), ("Gold", 10_000, 0.9), ("Platinum", 50_000, 0.8))
 
 
 # ---- the season -------------------------------------------------------------------------------------------------
@@ -76,8 +77,8 @@ def tier_of(u: dict | None) -> int:
 
 def best_share(u: dict | None) -> float:
     """The share of the base Rivemont fee this customer pays: the LOWER of their Points tier's share and their 30-day
-    volume tier's share (fees/volume.py). The two never stack: a Gold holder (0.8) with $2.5M of volume (0.7) pays 0.7
-    of the base, not 0.56."""
+    volume tier's share (fees/volume.py). The two never stack: a Gold holder (0.9) with $5M of volume (0.8) pays 0.8
+    of the base, not 0.72."""
     from . import volume
     t = tier_of(u)
     return min(TIERS[t][2] if t else 1.0, volume.share(u))
@@ -108,9 +109,9 @@ def fee(u: dict | None, tenths_bp: int, now: float | None = None) -> int:
 
 def hl_fee(u: dict | None, tenths_bp: int, now: float | None = None) -> int:
     """The builder fee on this customer's Hyperliquid orders: fee() and never above the maxBuilderFee they approved
-    (builder_fee.approved_cap). Accounts that approved the old 0.05% keep trading at no more than 0.05% until they
-    approve the new rate: Hyperliquid refuses an order whose builder fee is above the approval, so a bot would otherwise
-    stop."""
+    (builder_fee.approved_cap). Accounts that approved the old 0.05% are charged at most 0.05% (since 2026-10-08 the base
+    is 0.05%, so they pay the same as a 0.1% approval): Hyperliquid refuses an order whose builder fee is above the
+    approval, so a bot would otherwise stop."""
     from . import builder_fee as hl
     f = fee(u, tenths_bp, now)
     cap = hl.approved_cap(u)
@@ -126,6 +127,7 @@ def view(u: dict) -> dict:
     return {# Rivemont's fee by 30-day volume (fees/volume.py) and what this account pays on Hyperliquid now
             "volume_30d": round(float(u.get("vol_30d") or 0), 2), "volume_tier": volume.tier_of(u),
             "fee_pct": hl_fee(u, base) / 1000,
-            # approved before the 0.1% rate: the fee stays at the old approval until the customer approves again
+            # fee_reapprove: the approval is below the fee this account would pay (cap < fee). Since 2026-10-08 the base is
+            # 0.05%, so an old 0.05% approval covers every tier and nothing is asked; only an approval below that does
             "builder_max_pct": None if cap is None else cap / 1000,
             "fee_reapprove": bool(builder_address()) and cap is not None and cap < fee(u, base)}

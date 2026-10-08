@@ -692,7 +692,7 @@ if (typeof window !== 'undefined' && window.TBX && typeof S !== 'undefined') (fu
   const feeRate = v => { const f = feeOf(v), m = C().fmtRate(f.maker), t = C().fmtRate(f.taker), rv = rvRate(f);
     if (!f.known) return _t('Loading fees…');
     return rv ? _t('Fee {maker} / {taker} + Rivemont {fee} per fill', {maker: m, taker: t, fee: C().fmtRate(rv)}) : _t('Fee {maker} / {taker} per fill', {maker: m, taker: t}); };
-  /* the card's line wraps where a narrow column needs it, never inside "+ Rivemont 0.1% per fill" (Rivemont's fee stays
+  /* the card's line wraps where a narrow column needs it, never inside "+ Rivemont 0.05% per fill" (Rivemont's fee stays
      one piece, never "per fill" alone on a line) */
   const feeCard = v => feeRate(v).replace(/\+ Rivemont (\S+)( per fill)?/, (m, f, p) => '+\u00a0Rivemont\u00a0' + f + (p ? '\u00a0per\u00a0fill' : ''));
   function feeNote() {        // Rivemont's part only where it applies; a fee-free day's line after it
@@ -1346,7 +1346,7 @@ if (typeof window !== 'undefined' && window.TBX && typeof S !== 'undefined') (fu
     const host = document.querySelector('.bf-ws') || document.body;
     let m = document.getElementById('bf-cp'); if (m) m.remove();
     const draw = () => {
-      const fee = info && info.builder_fee_pct != null ? String(info.builder_fee_pct) : '0.1', cap = info && info.max_fee_rate ? String(info.max_fee_rate) : '0.1%';
+      const fee = info && info.builder_fee_pct != null ? String(info.builder_fee_pct) : '0.05', cap = info && info.max_fee_rate ? String(info.max_fee_rate) : '0.1%';
       const sec = (h, ps) => `<div class="drawer-section"><h3>${esc(h)}</h3>${ps.map(p => `<p>${esc(p)}</p>`).join('')}</div>`;
       return `<div class="modal-backdrop" data-cpx="1"><section class="modal narrow" role="dialog" aria-modal="true" aria-labelledby="bf-cpt">` +
         `<header class="modal-header"><div><h2 id="bf-cpt">${esc(_t('Before you connect'))}</h2><p>${esc(_t('What connecting lets Rivemont do, what it costs and how to undo it.'))}</p></div>` +

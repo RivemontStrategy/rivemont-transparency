@@ -14,9 +14,10 @@ import time
 import httpx
 
 AGENT_NAME = "rivemont"
-# what customers approve: the ceiling of the builder fee (0.1%, Hyperliquid's maximum for perps). Accounts that approved
-# before that hold the old 0.05% approval: the fee attached to their orders is capped at what they approved
-# (fees/builder_fee.py approved_cap, fees/tiers.py hl_fee), so their orders are never refused for it.
+# what customers approve: the ceiling of the builder fee (0.1%, Hyperliquid's maximum for perps; kept at 0.1% when the
+# fee itself became "from 0.05%" on 2026-10-08). Accounts that approved before 2026-10-06 hold the old 0.05% approval: the
+# fee attached to their orders is capped at what they approved (fees/builder_fee.py approved_cap, fees/tiers.py hl_fee),
+# so their orders are never refused for it (and since the base is 0.05% now, they pay the same as everyone).
 MAX_FEE_RATE = os.environ.get("AUTO_BUILDER_MAX_FEE_RATE", "0.1%")
 NONCE_MAX_AGE_MS = 10 * 60 * 1000
 

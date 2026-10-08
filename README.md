@@ -2,7 +2,8 @@
 
 Rivemont ([rivemont.xyz](https://rivemont.xyz)) is a site for building, backtesting and running trading bots on
 Hyperliquid. Your money stays in your own Hyperliquid account: you sign in with your wallet, approve a trade-only API
-wallet, and Rivemont earns a builder fee on the fills it sends (from 0.1%, lower with your 30-day volume).
+wallet, and Rivemont earns a builder fee on the fills it sends: from 0.05% per fill, lower with your 30-day volume;
+the approval you sign is a cap of 0.1%.
 
 This repository publishes the parts of Rivemont that touch your wallet and your money, **so anyone can verify how
 signing, fees and withdrawals work**. It is a source-available excerpt of the live code, not the full product: the
@@ -13,11 +14,30 @@ trading engine, the bot logic on the server, the backtester, account storage and
 | Folder | What it shows |
 | --- | --- |
 | [`signing/`](signing) | Exactly what your wallet is asked to sign. The server builds each Hyperliquid action itself (`hl_actions.py` `build_action`), and when the signature comes back it rebuilds the expected action and refuses any difference: another agent or builder address, a higher fee rate, another network, a nonce older than 10 minutes (`check_action`). The API wallet approval (`approveAgent`) lets Rivemont place orders only; Hyperliquid does not let an API wallet withdraw. The sign-in message is EIP-4361 (`signin.py`): it names the site's domain and your address, each nonce is single use, bound to the exact text, and expires in 5 minutes. |
-| [`fees/`](fees) | Which fee your orders carry. The base is 0.1% per fill and can never exceed Hyperliquid's 0.1% perps maximum (`builder_fee.py`). It drops with your 30-day volume (`volume.py`: 0.100% / 0.085% / 0.070% / 0.055% / 0.040% at $0 / $500K / $2.5M / $10M / $50M) or your Points tier, whichever is lower, never both (`tiers.py`). It is then capped at the `maxBuilderFee` you approved on Hyperliquid (`approved_cap`, `hl_fee`): an account that approved 0.05% pays at most 0.05%. `attach_excerpt.py` shows where that number is attached to every order. No builder fee is attached before you approve one. |
+| [`fees/`](fees) | Which fee your orders carry. The fee is from 0.05% per fill, lower with your 30-day volume; the approval you sign is a cap of 0.1%, Hyperliquid's perps maximum, which the base can never exceed (`builder_fee.py`). It drops with your 30-day volume (`volume.py`) or your Points tier (`tiers.py`), whichever is lower, never both (tables below). It is then capped at the `maxBuilderFee` you approved on Hyperliquid (`approved_cap`, `hl_fee`): an account that approved the old 0.05% pays at most 0.05%, which covers every tier, so nobody has to approve again. `attach_excerpt.py` shows where that number is attached to every order. No builder fee is attached before you approve one. |
 | [`withdraw/`](withdraw) | That money only goes back to you. A withdrawal's destination is always the wallet that connected the account, taken from the account, never from the request (`hl_withdraw.py` `build_withdraw`); the signed withdrawal is rebuilt and compared field by field, and must be signed by that same wallet (`check_withdraw`, `routes_excerpt.py`). USDC moves between Hyperliquid market groups stay inside the same account (`build_dex_move` / `check_dex_move`). Amounts are signed to the exact cent you typed. `balance_guard.py` is the "how much may leave now" check, run before and after you sign. |
 | [`web/wallet/`](web/wallet) | The browser side. `wallet.js` is the one module that talks to your wallet (EIP-6963 injected wallets and WalletConnect). `hl-wallet-flows.js` holds the sign-in, approval and withdrawal flows: before your wallet is asked to sign, the page checks the server's answer again (right action type, network, chain id, fresh nonce, your own address as destination, the configured builder and at most 0.1%), and refuses to ask the wallet otherwise. |
 | [`web/bot-setup/`](web/bot-setup) | The bot setup front end: the guided setup at `/bots/new` (`bot-flow.js`), the bot panel, presets and backtest display (`terminal-bots.js`, `terminal-core.js`), the chart adapter (`chart-adapter.js`) and the styles (`ws.css`, `bot-flow.css`). |
 | [`tests/`](tests) | The unit tests for the above, copied from the live repository and adapted to this layout. |
+
+### The fee tables
+
+From 0.05% per fill, lower with your 30-day volume through Rivemont or your Points tier; the lower of the two applies,
+never both, and never above the `maxBuilderFee` you approved (0.1% for new approvals).
+
+| 30-day volume | Rivemont fee per fill |
+| --- | --- |
+| Under $1M | 0.050% |
+| $1M and up | 0.045% |
+| $5M and up | 0.040% |
+| $25M and up | 0.035% |
+
+| Points tier | Season points | Rivemont fee per fill |
+| --- | --- | --- |
+| Bronze | 0 | 0.050% |
+| Silver | 1,000 | 0.048% |
+| Gold | 10,000 | 0.045% |
+| Platinum | 50,000 | 0.040% |
 
 ### How it maps to the live site
 
@@ -55,7 +75,7 @@ Python 3.10+ and Node 18+:
 
 ```sh
 pip install -r requirements.txt
-python -m pytest            # 50 tests: signing, fees, withdrawals
+python -m pytest            # 61 tests: signing, fees, withdrawals
 npm test                    # 6 Node test files: wallet module, approval and withdrawal checks, bot setup
 ```
 
